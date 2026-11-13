@@ -40,3 +40,5 @@ General purpose in/out
 
 
 https://chatgpt.com/share/6af66611-0c10-83ee-b13c-f3b425ded99b
+
+https://chatgpt.com/share/6af66c6a-70a8-83ec-9c36-e10384da2229
