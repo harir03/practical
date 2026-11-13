@@ -1,3 +1,4 @@
+// ==================== DESIGN: Async_Counter ====================
 
 module Async_Counter(
     input clk, reset,
@@ -25,6 +26,7 @@ begin
         Q[2] <= ~Q[2];
 end
 endmodule
+// ==================== TESTBENCH: Async_Counter_tb ====================
 module Async_Counter_tb;
 reg clk, reset;
 wire [2:0] Q;

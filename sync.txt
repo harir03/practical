@@ -1,3 +1,4 @@
+// ==================== DESIGN: Sync_Counter ====================
 
 module Sync_Counter(
     input clk, reset, up_down,
@@ -13,6 +14,7 @@ begin
         Q <= Q - 1'b1;
 end
 endmodule
+// ==================== TESTBENCH: Sync_Counter_tb ====================
 module Sync_Counter_tb;
 reg clk, reset, up_down;
 wire [2:0] Q;
