@@ -1,0 +1,26 @@
+
+#include <reg51.h>
+
+sbit RELAY = P1^0;// Relay connected to P1.0
+sbit BUZZER = P1^1;// Buzzer connected to P1.1
+
+void delay()// Generate delay
+{
+unsigned int i, j;
+for(i=0; i<500; i++)
+for(j=0; j<1275; j++);
+}
+
+void main()
+{
+while(1)
+{
+RELAY = 1;// Turn ON relay
+BUZZER = 1;// Turn ON buzzer
+delay();// ON delay
+
+RELAY = 0;// Turn OFF relay
+BUZZER = 0;// Turn OFF buzzer
+delay();// OFF delay
+}
+}

@@ -1,0 +1,16 @@
+
+#include <reg51.h>
+sbit LED = P1^0;// LED connected to P1.0
+void main()
+{
+unsigned int i, j;// Delay variables
+ while(1)
+ {
+LED = 1;// Turn ON LED
+for(i=0; i<500; i++)
+for(j=0; j<1275; j++); // ON delay
+LED = 0;// Turn OFF LED
+for(i=0; i<500; i++)
+for(j=0; j<1275; j++); // OFF delay
+    }
+}

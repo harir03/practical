@@ -1,0 +1,83 @@
+
+#include <lpc214x.h>
+#include <stdio.h>
+
+#define RTConPrescaler 1// Use PCLK as clock source
+
+void delay(unsigned int time)// Generate delay
+{
+unsigned int i,j;
+for(i=0;i<time;i++)
+for(j=0;j<5000;j++);
+}
+
+void UartInit(unsigned int baudrate)// Initialize UART
+{
+int i,FDiv;
+i = PINSEL0;
+i = i & 0xFFFFFFF0;
+PINSEL0 = (i | 0x05);
+
+U0LCR = 0x83;// Enable baud rate divisor
+FDiv = (15000000/16)/baudrate;
+U0DLM = FDiv/256;
+U0DLL = FDiv%256;
+U0LCR = 0x03;// 8-bit data, 1 stop bit, no parity
+U0TER = 0x80;
+}
+
+int UART_PutChar(unsigned char Ch)// Transmit character
+{
+if(Ch=='\n')
+{
+while(!(U0LSR & 0x20));
+U0THR = 0x0D;
+}
+while(!(U0LSR & 0x20));
+return(U0THR = Ch);
+}
+
+int fputc(int ch, FILE *f)// Redirect printf to UART
+{
+return UART_PutChar(ch);
+}
+
+struct __FILE { int handle; };
+FILE __stdout;
+
+void RTCInit(void)// Initialize RTC
+{
+CIIR = 0x00;// Disable RTC interrupts
+#ifdef RTConPrescaler
+PREINT = 0x16D;// Prescaler integer value
+PREFRAC = 0x1B00;// Prescaler fractional value
+CCR = 0x02;// Reset clock
+#else
+CCR = 0x02;
+#endif
+}
+
+void SetTime(int hours,int mins,int sec)// Set RTC time
+{
+SEC = sec;
+MIN = mins;
+HOUR = hours;
+CCR = 0x01;// Start RTC clock
+}
+
+int main(void)
+{
+UartInit(9600);// Initialize UART at 9600 baud
+RTCInit();// Initialize RTC
+SetTime(5,30,1);// Set initial time
+
+while(1)
+{
+printf("\nThe Time is ");
+printf(":%02d",HOUR);// Display hours
+printf(":%02d",MIN);// Display minutes
+printf(":%02d",SEC);// Display seconds
+delay(500);
+}
+return 0;
+}

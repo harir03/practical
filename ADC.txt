@@ -1,0 +1,118 @@
+
+#include <lpc214x.h>
+#include <stdio.h>
+
+#define LCD_PORT 0x00FF0000
+#define EN (1<<10)// LCD Enable P0.10
+#define RS (1<<11)// LCD Register Select P0.11
+#define RW (1<<20)// LCD Read/Write P0.20
+#define LCD_SHIFT 16
+
+void delay(unsigned int time)// Generate delay
+{
+unsigned int i,j;
+for(i=0;i<time;i++)
+for(j=0;j<5000;j++);
+}
+
+void lcd_delay(unsigned int time)// LCD delay
+{
+int i,j;
+for(i=0;i<time;i++)
+for(j=0;j<200;j++);
+}
+
+void LCD_strobe()// Generate enable pulse
+{
+lcd_delay(100);
+IOSET0 = EN;
+lcd_delay(100);
+IOCLR0 = EN;
+lcd_delay(100);
+}
+
+void LCD_data(unsigned char ch)// Send data to LCD
+{
+IOCLR1 = LCD_PORT;
+IOSET1 = ch<<LCD_SHIFT;
+IOSET0 = RS;
+IOCLR0 = RW;
+LCD_strobe();
+}
+
+void LCD_cmd(unsigned char ch)// Send command to LCD
+{
+IOCLR1 = LCD_PORT;
+IOSET1 = ch<<LCD_SHIFT;
+IOCLR0 = RS;
+IOCLR0 = RW;
+LCD_strobe();
+}
+
+void LCD_init(void)// Initialize LCD
+{
+PINSEL0 &= 0xFF0FFFFF;
+PINSEL1 &= 0xFFFFFCFF;
+PINSEL2 &= 0xFFFFFFF3;
+
+IODIR0 = RS | EN | RW;
+IODIR1 = LCD_PORT;
+
+LCD_cmd(0x38);// 8-bit, 2-line mode
+LCD_cmd(0x06);// Entry mode
+LCD_cmd(0x0C);// Display ON, cursor OFF
+LCD_cmd(0x01);// Clear display
+LCD_cmd(0x80);// First line, first position
+}
+
+void LCD_display(int row,int pos,char *ch)// Display string
+{
+unsigned char temp;
+
+if(row==1)
+temp = 0x80 | (pos-1);
+else
+temp = 0xC0 | (pos-1);
+
+LCD_cmd(temp);
+
+while(*ch)
+LCD_data(*ch++);
+}
+
+void ADCInit(void)// Initialize ADC
+{
+PINSEL1 &= 0xF0FFFFFF;// Configure P0.28 and P0.29
+PINSEL1 |= 0x05000000;// Select ADC function
+}
+
+unsigned int ADC_Read(unsigned char channel)// Read ADC value
+{
+unsigned int ad1_data;
+
+AD0CR = 0x00200300 | (1<<channel);// Select channel and configure ADC
+AD0CR |= (1<<24);// Start ADC conversion
+
+while(!(AD0GDR & 0x80000000));// Wait for conversion
+
+ad1_data = (AD0GDR & 0x0000FFC0)>>6;// Extract 10-bit result
+
+return ad1_data;
+}
+
+int main()
+{
+unsigned int temp;
+char buf[17];// Buffer for 16 LCD characters
+
+LCD_init();// Initialize LCD
+ADCInit();// Initialize ADC
+
+while(1)
+{
+temp = ADC_Read(1);// Read ADC channel AD0.1
+sprintf(buf,"ADC result:0x%03X",temp);// Convert value to string
+LCD_display(1,1,buf);// Display ADC value on LCD
+delay(20);// Wait before next reading
+}
+}

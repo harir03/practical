@@ -1,0 +1,22 @@
+
+#include <reg51.h>
+
+void delay()// Generate delay
+{
+unsigned int i, j;
+for(i=0; i<100; i++)
+for(j=0; j<1275; j++);
+}
+
+void main()
+{
+unsigned char count;// 4-bit counter
+while(1)
+{
+for(count=0; count<16; count++)
+{
+P1 = count;// Display count (0-F) on LEDs
+delay();// Wait before next count
+}
+}
+}

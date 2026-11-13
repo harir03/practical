@@ -1,0 +1,35 @@
+module SISO(
+    input clk, reset, serial_in,
+    output serial_out
+);
+reg [3:0] shift_reg;
+always @(posedge clk or posedge reset)
+begin
+    if(reset)
+        shift_reg <= 4'b0000;
+    else
+        shift_reg <= {shift_reg[2:0], serial_in};
+end
+assign serial_out = shift_reg[3];
+endmodule
+module SISO_tb;
+reg clk, reset, serial_in;
+wire serial_out;
+SISO uut(clk, reset, serial_in, serial_out);
+initial begin
+    clk = 0;
+    forever #5 clk = ~clk;
+end
+initial begin
+    reset = 1; serial_in = 0;
+    #10 reset = 0;
+    serial_in = 1; #10;
+    serial_in = 0; #10;
+    serial_in = 1; #10;
+    serial_in = 1; #10;
+    serial_in = 0; #30;
+    $finish;
+end
+initial
+    $monitor("Time=%0t IN=%b OUT=%b", $time, serial_in, serial_out);
+endmodule

@@ -1,0 +1,57 @@
+
+module ALU(
+    input [3:0] A, B,
+    input [2:0] Sel,
+    output reg [3:0] Y
+);
+
+always @(*) begin
+    case(Sel)
+        3'b000: Y = A + B;  // Addition
+        3'b001: Y = A - B;  // Subtraction
+        3'b010: Y = A & B;  // AND
+        3'b011: Y = A | B;  // OR
+        3'b100: Y = A ^ B;  // XOR
+        3'b101: Y = ~A;     // NOT
+        3'b110: Y = A << 1; // Left shift
+        3'b111: Y = A >> 1; // Right shift
+        default: Y = 4'b0000;
+    endcase
+end
+
+endmodule
+
+module ALU_tb;
+
+reg [3:0] A, B;
+reg [2:0] Sel;
+wire [3:0] Y;
+
+ALU uut(
+    .A(A),
+    .B(B),
+    .Sel(Sel),
+    .Y(Y)
+);
+
+initial begin
+    A = 4'b1010;
+    B = 4'b0011;
+
+    Sel = 3'b000; #10;
+    Sel = 3'b001; #10;
+    Sel = 3'b010; #10;
+    Sel = 3'b011; #10;
+    Sel = 3'b100; #10;
+    Sel = 3'b101; #10;
+    Sel = 3'b110; #10;
+    Sel = 3'b111; #10;
+
+    $finish;
+end
+
+initial begin
+    $monitor("A=%b B=%b Sel=%b Y=%b", A, B, Sel, Y);
+end
+
+endmodule

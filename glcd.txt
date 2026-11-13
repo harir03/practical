@@ -1,0 +1,59 @@
+
+#include <LPC214x.h>
+#include <string.h>
+
+#define DATA 0x00FF0000
+#define EN (1<<10)// GLCD Enable P0.10
+#define RS (1<<11)// GLCD Register Select P0.11
+#define RW (1<<20)// GLCD Read/Write P0.20
+
+void delay()// Generate delay
+{
+unsigned int i;
+for(i=0; i<10000; i++);
+}
+
+void command(unsigned char cmd)// Send command to GLCD
+{
+IOCLR0 = RS;
+IOCLR0 = RW;
+IOCLR1 = DATA;
+IOSET1 = (cmd<<16);
+IOSET0 = EN;
+delay();
+IOCLR0 = EN;
+}
+
+void data(unsigned char value)// Send data to GLCD
+{
+IOSET0 = RS;
+IOCLR0 = RW;
+IOCLR1 = DATA;
+IOSET1 = (value<<16);
+IOSET0 = EN;
+delay();
+IOCLR0 = EN;
+}
+
+void main()
+{
+IODIR0 |= EN|RS|RW;// Configure control pins
+IODIR1 |= DATA;// Configure data pins
+
+command(0x3F);// Turn ON GLCD
+command(0xC0);// Set start line
+command(0xB8);// Select page 0
+command(0x40);// Set column 0
+
+while(1)
+{
+data(0xFF);// Display pattern on GLCD
+data(0x81);
+data(0xBD);
+data(0xA5);
+data(0xA5);
+data(0xBD);
+data(0x81);
+data(0xFF);
+}
+}

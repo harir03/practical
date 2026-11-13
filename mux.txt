@@ -1,0 +1,33 @@
+module MUX2(
+    input A, B, S,
+    output Y
+);
+assign Y = S ? B : A;
+endmodule
+
+module MUX4(
+    input I0, I1, I2, I3,
+    input S0, S1,
+    output Y
+);
+wire Y1, Y2;
+MUX2 M1(I0, I1, S0, Y1);
+MUX2 M2(I2, I3, S0, Y2);
+MUX2 M3(Y1, Y2, S1, Y);
+Endmodule
+module MUX4_tb;
+reg I0, I1, I2, I3;
+reg S0, S1;
+wire Y;
+MUX4 uut(I0, I1, I2, I3, S0, S1, Y);
+initial begin
+    I0=0; I1=1; I2=0; I3=1;
+    S1=0; S0=0; #10;
+    S1=0; S0=1; #10;
+    S1=1; S0=0; #10;
+    S1=1; S0=1; #10;
+    $finish;
+end
+initial
+    $monitor("S1=%b S0=%b Y=%b", S1, S0, Y);
+endmodule

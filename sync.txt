@@ -1,0 +1,33 @@
+
+module Sync_Counter(
+    input clk, reset, up_down,
+    output reg [2:0] Q
+);
+always @(posedge clk or posedge reset)
+begin
+    if(reset)
+        Q <= 3'b000;
+    else if(up_down)
+        Q <= Q + 1'b1;
+    else
+        Q <= Q - 1'b1;
+end
+endmodule
+module Sync_Counter_tb;
+reg clk, reset, up_down;
+wire [2:0] Q;
+Sync_Counter uut(clk, reset, up_down, Q);
+initial begin
+    clk = 0;
+    forever #5 clk = ~clk;
+end
+initial begin
+    reset = 1; up_down = 1;
+    #10 reset = 0;
+    #80 up_down = 0;
+    #80 $finish;
+end
+initial
+    $monitor("Time=%0t Reset=%b UP_DOWN=%b Q=%b",
+             $time, reset, up_down, Q);
+endmodule
