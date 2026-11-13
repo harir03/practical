@@ -39,6 +39,6 @@ General purpose in/out
 5 axilix 236-1
 
 
-https://chatgpt.com/share/6af66611-0c10-83ee-b13c-f3b425ded99b
+[ChatGPT oral practice](https://chatgpt.com/share/6af66611-0c10-83ee-b13c-f3b425ded99b)
 
-https://chatgpt.com/share/6af66c6a-70a8-83ec-9c36-e10384da2229
+[Practical procedure](https://chatgpt.com/share/6af66c6a-70a8-83ec-9c36-e10384da2229)
