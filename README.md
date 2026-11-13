@@ -1,3 +1,5 @@
+
+
 # practical
 Foga vs cpld 
 8051 port structure 
@@ -35,3 +37,6 @@ Switch level moduling
 Family lo artic 7 
 General purpose in/out
 5 axilix 236-1
+
+
+https://chatgpt.com/share/6af66611-0c10-83ee-b13c-f3b425ded99b
