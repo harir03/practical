@@ -1,0 +1,437 @@
+
+#include <LPC214x.h>
+#include <stdio.h>
+#include <math.h>
+
+#define SSEL0 (1u << 7)
+#define SPIF (1u << 7)
+#define CD (1u << 22)
+
+#define LCD_PORT 0x00FF0000
+#define EN (1u << 10)
+#define RS (1u << 11)
+#define RW (1u << 20)
+#define LCD_SHIFT 16
+
+#define CMD0 0
+#define CMD1 1
+#define CMD8 8
+#define CMD9 9
+#define CMD10 10
+#define CMD17 17
+#define CMD24 24
+#define CMD41 41
+#define CMD55 55
+
+unsigned char CMD0_data[6] = {0x40,0,0,0,0,0x95};
+unsigned char CMD1_data[6] = {0x41,0,0,0,0,0xFF};
+unsigned char CMD8_data[6] = {0x48,0,0,1,0xAA,0x87};
+unsigned char CMD9_data[6] = {0x49,0,0,0,0,0};
+unsigned char CMD10_data[6] = {0x4A,0,0,0,0,0};
+unsigned char CMD17_data[6] = {0x51,0,0,0,0,0};
+unsigned char CMD24_data[6] = {0x58,0,0,0,0,0};
+unsigned char CMD41_data[6] = {0x69,0x40,0,0,0,0xFF};
+unsigned char CMD55_data[6] = {0x77,0,0,0,0,0xFF};
+
+unsigned char ch;
+unsigned int i;
+
+void lcd_delay(unsigned int time)
+{
+    unsigned int i,j;
+    for(i=0;i<time;i++)
+        for(j=0;j<200;j++);
+}
+
+void LCD_strobe(void)
+{
+    lcd_delay(100);
+    IOSET0 = EN;
+    lcd_delay(100);
+    IOCLR0 = EN;
+    lcd_delay(100);
+}
+
+void LCD_data(unsigned char ch)
+{
+    IOCLR1 = LCD_PORT;
+    IOSET1 = (unsigned int)ch << LCD_SHIFT;
+    IOSET0 = RS;
+    IOCLR0 = RW;
+    LCD_strobe();
+}
+
+void LCD_cmd(unsigned char ch)
+{
+    IOCLR1 = LCD_PORT;
+    IOSET1 = (unsigned int)ch << LCD_SHIFT;
+    IOCLR0 = RS | RW;
+    LCD_strobe();
+}
+
+void lcd_init(void)
+{
+    PINSEL0 &= 0xFF0FFFFF;
+    PINSEL1 &= 0xFFFFFCFF;
+    PINSEL2 &= 0xFFFFFFF3;
+
+    IODIR0 |= EN | RS | RW;
+    IODIR1 |= LCD_PORT;
+
+    LCD_cmd(0x38);
+    LCD_cmd(0x06);
+    LCD_cmd(0x0C);
+    LCD_cmd(0x01);
+    LCD_cmd(0x80);
+}
+
+void lcd_goto(unsigned char row,unsigned char pos)
+{
+    LCD_cmd((row == 0 ? 0x80 : 0xC0) + pos);
+}
+
+void lcd_putc(unsigned char ch)
+{
+    LCD_data(ch);
+}
+
+void lcd_puts(const char *s)
+{
+    while(*s)
+        LCD_data((unsigned char)*s++);
+}
+
+void lcd_clear(void)
+{
+    LCD_cmd(0x01);
+    lcd_delay(10);
+}
+
+void lcd_show(const char *line1,const char *line2)
+{
+    lcd_clear();
+    lcd_goto(0,0);
+    lcd_puts(line1);
+    lcd_goto(1,0);
+    lcd_puts(line2);
+}
+
+void lcd_show_value(const char *label,unsigned long value)
+{
+    char buf[17];
+    sprintf(buf,"%s%lu",label,value);
+    lcd_show(buf,"");
+}
+
+void delay(unsigned int time)
+{
+    unsigned int i,j;
+    for(i=0;i<time;i++)
+        for(j=0;j<3000;j++);
+}
+
+void spi0_init(void)
+{
+    PINSEL0 &= 0xFFFF00FF;
+    PINSEL0 |= 0x00001500;
+
+    IODIR0 |= SSEL0;
+    S0SPCCR = 0x10;
+    IOSET0 = SSEL0;
+    S0SPCR = 0x0020;
+}
+
+unsigned char spi0_write(unsigned char data)
+{
+    S0SPDR = data;
+    while(!(S0SPSR & SPIF));
+    return S0SPDR;
+}
+
+unsigned char spi0_read(void)
+{
+    S0SPDR = 0xFF;
+    while(!(S0SPSR & SPIF));
+    return S0SPDR;
+}
+
+unsigned char send_cmd(unsigned char *temp)
+{
+    spi0_read();
+
+    for(i=0;i<6;i++)
+        spi0_write(temp[i]);
+
+    return spi0_read();
+}
+
+void card_init(void)
+{
+    unsigned int timer = 100;
+    unsigned char response[4];
+
+    PINSEL1 &= 0xFFFFCFFF;
+    IODIR0 &= ~CD;
+
+    if(IOPIN0 & CD)
+    {
+        lcd_show("Insert SD card","");
+        while(IOPIN0 & CD);
+    }
+
+    delay(5000);
+    spi0_init();
+
+    lcd_show("Initializing SD","Please wait");
+
+    for(i=0;i<10;i++)
+        spi0_read();
+
+    lcd_show("SD Command","CMD0");
+    IOCLR0 = SSEL0;
+    send_cmd(CMD0_data);
+    ch = spi0_read();
+    IOSET0 = SSEL0;
+    delay(1000);
+
+    if(ch == 0x01)
+        lcd_show("Card in SPI","Mode detected");
+
+    delay(1000);
+    lcd_show("SD Command","CMD8");
+
+    IOCLR0 = SSEL0;
+    send_cmd(CMD8_data);
+    response[0] = spi0_read();
+
+    for(i=1;i<4;i++)
+        response[i] = spi0_read();
+
+    spi0_read();
+    IOSET0 = SSEL0;
+    delay(1000);
+
+    lcd_show("Initializing SD","ACMD41");
+
+    do
+    {
+        IOCLR0 = SSEL0;
+        send_cmd(CMD55_data);
+        spi0_read();
+        spi0_read();
+        IOSET0 = SSEL0;
+        delay(50);
+
+        IOCLR0 = SSEL0;
+        send_cmd(CMD41_data);
+        ch = spi0_read();
+        IOSET0 = SSEL0;
+        delay(50);
+
+    } while(ch != 0x00 && --timer);
+
+    if(timer == 0)
+        lcd_show("Card Init","FAILED");
+    else
+        lcd_show("Card Init","SUCCESS");
+
+    delay(2000);
+}
+
+void card_write(unsigned int sector,unsigned char data)
+{
+    unsigned char temp[6] = {0,0,0,0,0,0};
+
+    lcd_show("Writing sector","");
+    sector = sector * 512;
+
+    temp[0] = CMD24_data[0];
+    temp[4] = sector & 0xFF;
+    temp[3] = (sector >> 8) & 0xFF;
+    temp[2] = (sector >> 16) & 0xFF;
+
+    IOCLR0 = SSEL0;
+    send_cmd(temp);
+    spi0_read();
+    spi0_read();
+    spi0_write(0xFE);
+
+    for(i=0;i<=512;i++)
+        spi0_write(data);
+
+    spi0_write(0x00);
+    ch = spi0_write(0x00);
+    delay(1000);
+
+    if(((ch & 0x1F) >> 1) == 0x02)
+        lcd_show("Write","SUCCESS");
+    else
+        lcd_show("Write","FAILED");
+
+    spi0_read();
+    spi0_read();
+    IOSET0 = SSEL0;
+    delay(2000);
+}
+
+void card_read(unsigned int sector)
+{
+    unsigned char temp[6] = {0,0,0,0,0,0};
+    unsigned int timer = 300;
+
+    lcd_show("Reading sector","");
+    sector = sector * 512;
+
+    temp[0] = CMD17_data[0];
+    temp[4] = sector & 0xFF;
+    temp[3] = (sector >> 8) & 0xFF;
+    temp[2] = (sector >> 16) & 0xFF;
+
+    IOCLR0 = SSEL0;
+    send_cmd(temp);
+
+    do
+    {
+        ch = spi0_read();
+    } while(ch != 0xFE && --timer);
+
+    if(timer == 0)
+    {
+        lcd_show("Read","FAILED");
+        while(1);
+    }
+
+    for(i=0;i<512;i++)
+        ch = spi0_read();
+
+    spi0_read();
+    spi0_read();
+    IOSET0 = SSEL0;
+
+    {
+        char buf[17];
+        sprintf(buf,"Data: 0x%02X",ch);
+        lcd_show("Read SUCCESS",buf);
+    }
+
+    delay(2000);
+}
+
+void card_cid(void)
+{
+    unsigned char temp[16],j;
+    unsigned char name[6],MID,PRV,Mdate,month,year;
+    char buf[17];
+
+    lcd_show("Reading card","CID");
+
+    IOCLR0 = SSEL0;
+    send_cmd(CMD10_data);
+
+    do
+    {
+        ch = spi0_read();
+    } while(ch != 0xFE);
+
+    for(j=0;j<16;j++)
+        temp[j] = spi0_read();
+
+    spi0_read();
+    spi0_read();
+    IOSET0 = SSEL0;
+
+    MID = temp[0];
+    sprintf(buf,"Maker ID: %u",MID);
+    lcd_show("Card CID",buf);
+    delay(2000);
+
+    sprintf(buf,"App: %c%c",temp[1],temp[2]);
+    lcd_show("Application ID",buf);
+    delay(2000);
+
+    for(j=0;j<5;j++)
+        name[j] = temp[j+3];
+
+    name[5] = '\0';
+    lcd_show("Product Name",(char *)name);
+    delay(2000);
+
+    PRV = temp[8];
+    sprintf(buf,"Revision: %X.%X",(PRV & 0xF0) >> 4,PRV & 0x0F);
+    lcd_show("Card CID",buf);
+    delay(2000);
+
+    sprintf(buf,"%02X%02X%02X%02X",temp[9],temp[10],temp[11],temp[12]);
+    lcd_show("Serial Number",buf);
+    delay(2000);
+
+    Mdate = temp[14];
+    month = Mdate & 0x0F;
+    year = (Mdate & 0x0FF0) >> 4;
+
+    sprintf(buf,"%u/%u",month,year);
+    lcd_show("Mfg Date M/Y",buf);
+    delay(2000);
+}
+
+void card_csd(void)
+{
+    unsigned char temp[16],j;
+    unsigned long int C_SIZE = 0,C_MUL = 0,BL_Len = 0;
+    unsigned long int capacity;
+    char buf[17];
+
+    lcd_show("Reading card","CSD");
+
+    IOCLR0 = SSEL0;
+    send_cmd(CMD9_data);
+
+    do
+    {
+        ch = spi0_read();
+    } while(ch != 0xFE);
+
+    for(j=0;j<16;j++)
+        temp[j] = spi0_read();
+
+    spi0_read();
+    spi0_read();
+    IOSET0 = SSEL0;
+
+    C_SIZE |= temp[8] >> 6;
+    C_SIZE |= temp[7] << 2;
+    C_SIZE |= (temp[6] & 0x03) << 10;
+
+    C_MUL |= temp[10] >> 7;
+    C_MUL |= (temp[9] & 0x03) << 1;
+
+    BL_Len = temp[5] & 0x0F;
+
+    capacity = (C_SIZE + 1) *
+               ((double)pow(2,C_MUL + 2)) *
+               ((double)pow(2,BL_Len));
+
+    sprintf(buf,"%lu bytes",capacity);
+    lcd_show("Card Capacity",buf);
+    delay(2000);
+}
+
+int main(void)
+{
+    lcd_init();
+    lcd_show("MicroSD Card","LPC2148 SPI0");
+    delay(2000);
+
+    card_init();
+    delay(2000);
+
+    card_csd();
+    card_cid();
+
+    card_write(0x1234,0x42);
+    card_read(0x1234);
+
+    lcd_show("SD Test","Complete");
+
+    while(1);
+}
