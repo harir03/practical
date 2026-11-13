@@ -1,3 +1,4 @@
+// ==================== DESIGN: MUX2 / MUX4 ====================
 module MUX2(
     input A, B, S,
     output Y
@@ -15,6 +16,7 @@ MUX2 M1(I0, I1, S0, Y1);
 MUX2 M2(I2, I3, S0, Y2);
 MUX2 M3(Y1, Y2, S1, Y);
 Endmodule
+// ==================== TESTBENCH: MUX4_tb ====================
 module MUX4_tb;
 reg I0, I1, I2, I3;
 reg S0, S1;

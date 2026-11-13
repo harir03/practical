@@ -1,3 +1,4 @@
+// ==================== DESIGN: JK_FF ====================
 module JK_FF(
     input J, K, clk,
     output reg Q
@@ -12,6 +13,7 @@ begin
     endcase
 end
 endmodule
+// ==================== TESTBENCH: JK_FF_tb ====================
 module JK_FF_tb;
 reg J, K, clk;
 wire Q;
@@ -30,6 +32,7 @@ end
 initial
     $monitor("J=%b K=%b Q=%b",J,K,Q);
 endmodule
+// ==================== DESIGN: T_FF ====================
 module T_FF(
     input T, clk,
     output reg Q
@@ -42,6 +45,7 @@ begin
         Q <= Q;
 end
 endmodule
+// ==================== TESTBENCH: T_FF_tb ====================
 module T_FF_tb;
 reg T, clk;
 wire Q;

@@ -1,3 +1,4 @@
+// ==================== DESIGN: HALF_ADDER / FULL_ADDER ====================
 module HALF_ADDER(
     input A, B,
     output SUM, CARRY
@@ -14,6 +15,7 @@ HALF_ADDER HA1(A, B, S1, C1);
 HALF_ADDER HA2(S1, Cin, SUM, C2);
 assign Cout = C1 | C2;
 endmodule
+// ==================== TESTBENCH: FULL_ADDER_tb ====================
 module FULL_ADDER_tb;
 reg A, B, Cin;
 wire SUM, Cout;

@@ -1,3 +1,4 @@
+// ==================== DESIGN: SISO ====================
 module SISO(
     input clk, reset, serial_in,
     output serial_out
@@ -12,6 +13,7 @@ begin
 end
 assign serial_out = shift_reg[3];
 endmodule
+// ==================== TESTBENCH: SISO_tb ====================
 module SISO_tb;
 reg clk, reset, serial_in;
 wire serial_out;
